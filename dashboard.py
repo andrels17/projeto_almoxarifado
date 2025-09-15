@@ -1208,6 +1208,12 @@ def show_materials_analysis():
     with st.spinner('Carregando dados...'):
         data = load_data()
     
+    # Verificar se os dados foram carregados corretamente
+    if 'estoque' not in data or len(data['estoque']) == 0:
+        st.error("❌ Nenhum dado encontrado. Verifique se o banco de dados foi inicializado corretamente.")
+        st.info("💡 Use a aba 'Integração de Dados' para carregar dados de exemplo.")
+        return
+    
     # Filtros para seleção de material (layout responsivo)
     col1, col2 = st.columns([3, 1])
     
@@ -1226,10 +1232,16 @@ def show_materials_analysis():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            familia_filter = st.selectbox("Filtrar por Família:", ['Todas'] + list(data['estoque']['familia'].unique()), key="familia_filter")
+            if 'familia' in data['estoque'].columns:
+                familia_filter = st.selectbox("Filtrar por Família:", ['Todas'] + list(data['estoque']['familia'].unique()), key="familia_filter")
+            else:
+                familia_filter = 'Todas'
         
         with col2:
-            almoxarifado_filter = st.selectbox("Filtrar por Almoxarifado:", ['Todos'] + list(data['estoque']['almoxarifado'].unique()), key="almoxarifado_filter")
+            if 'almoxarifado' in data['estoque'].columns:
+                almoxarifado_filter = st.selectbox("Filtrar por Almoxarifado:", ['Todos'] + list(data['estoque']['almoxarifado'].unique()), key="almoxarifado_filter")
+            else:
+                almoxarifado_filter = 'Todos'
         
         with col3:
             valor_min = st.number_input("Valor Mínimo (R$):", min_value=0.0, value=0.0, step=100.0, key="valor_min")
@@ -1242,37 +1254,67 @@ def show_materials_analysis():
         # Busca inteligente baseada no tipo selecionado
         if search_type == 'Código e Descrição':
             # Buscar tanto por nome quanto por código
-            mask = (
-                estoque_filtrado['desc_material'].str.contains(search_term, case=False, na=False) |
-                estoque_filtrado['cod_material'].astype(str).str.contains(search_term, case=False, na=False)
-            )
+            if 'desc_material' in estoque_filtrado.columns and 'cod_material' in estoque_filtrado.columns:
+                mask = (
+                    estoque_filtrado['desc_material'].str.contains(search_term, case=False, na=False) |
+                    estoque_filtrado['cod_material'].astype(str).str.contains(search_term, case=False, na=False)
+                )
+            else:
+                mask = pd.Series([False] * len(estoque_filtrado), index=estoque_filtrado.index)
         elif search_type == 'Apenas Código':
             # Buscar apenas por código
-            mask = estoque_filtrado['cod_material'].astype(str).str.contains(search_term, case=False, na=False)
+            if 'cod_material' in estoque_filtrado.columns:
+                mask = estoque_filtrado['cod_material'].astype(str).str.contains(search_term, case=False, na=False)
+            else:
+                mask = pd.Series([False] * len(estoque_filtrado), index=estoque_filtrado.index)
         else:  # Apenas Descrição
             # Buscar apenas por descrição
-            mask = estoque_filtrado['desc_material'].str.contains(search_term, case=False, na=False)
+            if 'desc_material' in estoque_filtrado.columns:
+                mask = estoque_filtrado['desc_material'].str.contains(search_term, case=False, na=False)
+            else:
+                mask = pd.Series([False] * len(estoque_filtrado), index=estoque_filtrado.index)
         
         estoque_filtrado = estoque_filtrado[mask]
     
     # Filtros avançados
-    if familia_filter != 'Todas':
+    if familia_filter != 'Todas' and 'familia' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['familia'] == familia_filter]
     
-    if almoxarifado_filter != 'Todos':
+    if almoxarifado_filter != 'Todos' and 'almoxarifado' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['almoxarifado'] == almoxarifado_filter]
     
-    if valor_min > 0:
+    if valor_min > 0 and 'valor_total' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['valor_total'] >= valor_min]
     
     # Agrupar por material para mostrar resumo
-    tabela_resumo = estoque_filtrado.groupby(['cod_material', 'desc_material', 'familia', 'unidade']).agg({
-        'quantidade': 'sum',
-        'valor_total': 'sum',
-        'custo_medio': 'mean'
-    }).reset_index()
-    
-    tabela_resumo = tabela_resumo.sort_values(sort_by, ascending=False)
+    if len(estoque_filtrado) > 0:
+        # Verificar se as colunas necessárias existem
+        colunas_necessarias = ['cod_material', 'desc_material', 'quantidade', 'valor_total', 'custo_medio']
+        colunas_existentes = [col for col in colunas_necessarias if col in estoque_filtrado.columns]
+        
+        if len(colunas_existentes) >= 3:  # Pelo menos 3 colunas necessárias
+            tabela_resumo = estoque_filtrado.groupby(['cod_material', 'desc_material']).agg({
+                'quantidade': 'sum' if 'quantidade' in estoque_filtrado.columns else 'count',
+                'valor_total': 'sum' if 'valor_total' in estoque_filtrado.columns else 'count',
+                'custo_medio': 'mean' if 'custo_medio' in estoque_filtrado.columns else 'count'
+            }).reset_index()
+            
+            # Adicionar colunas que podem não existir
+            if 'familia' in estoque_filtrado.columns:
+                tabela_resumo['familia'] = estoque_filtrado.groupby(['cod_material', 'desc_material'])['familia'].first().values
+            else:
+                tabela_resumo['familia'] = 'N/A'
+            
+            if 'unidade' in estoque_filtrado.columns:
+                tabela_resumo['unidade'] = estoque_filtrado.groupby(['cod_material', 'desc_material'])['unidade'].first().values
+            else:
+                tabela_resumo['unidade'] = 'N/A'
+            
+            tabela_resumo = tabela_resumo.sort_values(sort_by, ascending=False)
+        else:
+            tabela_resumo = pd.DataFrame()
+    else:
+        tabela_resumo = pd.DataFrame()
     
     # Mostrar resultados da busca
     filtros_aplicados = []
@@ -1466,6 +1508,12 @@ def show_advanced_analyses():
     # Carregar dados
     with st.spinner('Carregando dados...'):
         data = load_data()
+    
+    # Verificar se os dados foram carregados corretamente
+    if 'estoque' not in data or len(data['estoque']) == 0:
+        st.error("❌ Nenhum dado encontrado. Verifique se o banco de dados foi inicializado corretamente.")
+        st.info("💡 Use a aba 'Integração de Dados' para carregar dados de exemplo.")
+        return
     
     # Tabs para diferentes análises
     tab_estatisticas, tab_previsao, tab_otimizacao, tab_sugestoes, tab_relatorios = st.tabs([
