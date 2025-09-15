@@ -1,0 +1,16 @@
+cod_material,desc_material,quantidade,custo_medio,valor_total,unidade,periodo,ano,mes,familia,grupo_material,tipo_material,almoxarifado,localizacao,classificacao_sped,conta_contabil,classificacao_fiscal,identificacao
+MAT001,Parafuso M6x20,1000,0.15,150.00,UN,jan/23,2023,1,Ferramentas,Parafusos,Metal,Principal,A1-B2,15.01.01,1.1.01.001,NCM12345678,LOTE001
+MAT002,Porca M6,500,0.08,40.00,UN,jan/23,2023,1,Ferramentas,Porcas,Metal,Principal,A1-B3,15.01.02,1.1.01.002,NCM87654321,LOTE002
+MAT003,Arruela M6,2000,0.03,60.00,UN,jan/23,2023,1,Ferramentas,Arruelas,Metal,Principal,A1-B4,15.01.03,1.1.01.003,NCM11223344,LOTE003
+MAT004,Chave de Fenda Phillips,50,12.50,625.00,UN,jan/23,2023,1,Ferramentas,Chaves,Metal,Principal,A2-B1,15.01.04,1.1.01.004,NCM98765432,LOTE004
+MAT005,Martelo 500g,25,45.00,1125.00,UN,jan/23,2023,1,Ferramentas,Martelos,Metal,Principal,A2-B2,15.01.05,1.1.01.005,NCM55555555,LOTE005
+MAT006,Parafuso M8x30,800,0.25,200.00,UN,fev/23,2023,2,Ferramentas,Parafusos,Metal,Principal,A1-B2,15.01.01,1.1.01.001,NCM12345678,LOTE006
+MAT007,Porca M8,400,0.12,48.00,UN,fev/23,2023,2,Ferramentas,Porcas,Metal,Principal,A1-B3,15.01.02,1.1.01.002,NCM87654321,LOTE007
+MAT008,Arruela M8,1600,0.05,80.00,UN,fev/23,2023,2,Ferramentas,Arruelas,Metal,Principal,A1-B4,15.01.03,1.1.01.003,NCM11223344,LOTE008
+MAT009,Chave de Fenda Plana,45,10.00,450.00,UN,fev/23,2023,2,Ferramentas,Chaves,Metal,Principal,A2-B1,15.01.04,1.1.01.004,NCM98765432,LOTE009
+MAT010,Martelo 300g,30,35.00,1050.00,UN,fev/23,2023,2,Ferramentas,Martelos,Metal,Principal,A2-B2,15.01.05,1.1.01.005,NCM55555555,LOTE010
+MAT011,Parafuso M10x40,600,0.35,210.00,UN,mar/23,2023,3,Ferramentas,Parafusos,Metal,Principal,A1-B2,15.01.01,1.1.01.001,NCM12345678,LOTE011
+MAT012,Porca M10,300,0.15,45.00,UN,mar/23,2023,3,Ferramentas,Porcas,Metal,Principal,A1-B3,15.01.02,1.1.01.002,NCM87654321,LOTE012
+MAT013,Arruela M10,1200,0.07,84.00,UN,mar/23,2023,3,Ferramentas,Arruelas,Metal,Principal,A1-B4,15.01.03,1.1.01.003,NCM11223344,LOTE013
+MAT014,Chave de Fenda Estrela,40,15.00,600.00,UN,mar/23,2023,3,Ferramentas,Chaves,Metal,Principal,A2-B1,15.01.04,1.1.01.004,NCM98765432,LOTE014
+MAT015,Martelo 200g,35,25.00,875.00,UN,mar/23,2023,3,Ferramentas,Martelos,Metal,Principal,A2-B2,15.01.05,1.1.01.005,NCM55555555,LOTE015

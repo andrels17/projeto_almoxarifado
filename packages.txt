@@ -1,0 +1,7 @@
+# Arquivo de pacotes do sistema para Streamlit Cloud
+# Este arquivo é usado para instalar pacotes do sistema se necessário
+
+# Se precisar de pacotes do sistema, adicione aqui
+# Por exemplo:
+# libgomp1
+# libgfortran5

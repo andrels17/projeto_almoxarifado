@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Data Files
+*.csv
+*.xlsx
+*.xls
+*.json
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Streamlit
+.streamlit/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Documentation (development only)
+*_CORRECAO_*.md
+*_MELHORIAS_*.md
+*_SOLUCAO_*.md
+*_REORGANIZACAO_*.md
+*_ROTULOS_*.md
+*_SUBSTITUICAO_*.md
+*_OTIMIZACAO_*.md
+*_PLANO_*.md
+*_NOVA_*.md
+*_NOVAS_*.md
+*_BOTAO_*.md
+*_GRAFICOS_*.md
+*_SIMPLIFICACAO_*.md
+
+# Test files
+test_*.py
+check_*.py
+fix_*.py
+distribute_*.py
+
+# Reports
+relatorio_*.xlsx
+*.xlsx
