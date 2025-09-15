@@ -198,75 +198,88 @@ st.markdown("""
 @st.cache_data
 def load_data():
     """Carrega dados do banco SQLite"""
-    conn = sqlite3.connect('almoxarifado.db')
-    
-    # Queries principais
-    queries = {
-        'estoque': """
-            SELECT e.*, m.codigo as cod_material, m.descricao as desc_material,
-                   m.unidade, f.descricao as familia, g.descricao as grupo,
-                   a.descricao as almoxarifado, p.periodo, p.ano, p.mes
-            FROM estoque e
-            JOIN materiais m ON e.material_id = m.id
-            LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
-            LEFT JOIN familias f ON g.familia_id = f.id
-            LEFT JOIN almoxarifados a ON e.almoxarifado_id = a.id
-            LEFT JOIN periodos p ON e.periodo_id = p.id
-        """,
-        'materiais': """
-            SELECT m.*, f.descricao as familia, g.descricao as grupo,
-                   t.descricao as tipo_material
-            FROM materiais m
-            LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
-            LEFT JOIN familias f ON g.familia_id = f.id
-            LEFT JOIN tipos_materiais t ON m.tipo_material_id = t.id
-        """,
-        'resumo_por_periodo': """
-            SELECT p.periodo, p.ano, p.mes,
-                   COUNT(DISTINCT e.material_id) as total_materiais,
-                   SUM(e.quantidade) as total_quantidade,
-                   SUM(e.valor_total) as valor_total_estoque,
-                   AVG(e.custo_medio) as custo_medio_geral
-            FROM estoque e
-            JOIN periodos p ON e.periodo_id = p.id
-            GROUP BY p.id, p.periodo, p.ano, p.mes
-            ORDER BY p.ano, p.mes
-        """,
-        'top_materiais_valor': """
-            SELECT m.codigo, m.descricao, f.descricao as familia,
-                   SUM(e.valor_total) as valor_total,
-                   SUM(e.quantidade) as quantidade_total,
-                   AVG(e.custo_medio) as custo_medio
-            FROM estoque e
-            JOIN materiais m ON e.material_id = m.id
-            LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
-            LEFT JOIN familias f ON g.familia_id = f.id
-            GROUP BY m.id, m.codigo, m.descricao, f.descricao
-            ORDER BY valor_total DESC
-            LIMIT 20
-        """,
-        'estoque_por_almoxarifado': """
-            SELECT a.descricao as almoxarifado,
-                   COUNT(DISTINCT e.material_id) as total_materiais,
-                   SUM(e.quantidade) as quantidade_total,
-                   SUM(e.valor_total) as valor_total
-            FROM estoque e
-            JOIN almoxarifados a ON e.almoxarifado_id = a.id
-            GROUP BY a.id, a.descricao
-            ORDER BY valor_total DESC
-        """
-    }
-    
-    data = {}
-    for key, query in queries.items():
-        data[key] = pd.read_sql_query(query, conn)
-    
-    # Usar dados reais de períodos (sem simulação)
-    
-    # Manter apenas dados reais de almoxarifado (sem simulação)
-    
-    conn.close()
-    return data
+    try:
+        conn = sqlite3.connect('almoxarifado.db')
+        
+        # Queries principais
+        queries = {
+            'estoque': """
+                SELECT e.*, m.codigo as cod_material, m.descricao as desc_material,
+                       m.unidade, f.descricao as familia, g.descricao as grupo,
+                       a.descricao as almoxarifado, p.periodo, p.ano, p.mes
+                FROM estoque e
+                JOIN materiais m ON e.material_id = m.id
+                LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
+                LEFT JOIN familias f ON g.familia_id = f.id
+                LEFT JOIN almoxarifados a ON e.almoxarifado_id = a.id
+                LEFT JOIN periodos p ON e.periodo_id = p.id
+            """,
+            'materiais': """
+                SELECT m.*, f.descricao as familia, g.descricao as grupo,
+                       t.descricao as tipo_material
+                FROM materiais m
+                LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
+                LEFT JOIN familias f ON g.familia_id = f.id
+                LEFT JOIN tipos_materiais t ON m.tipo_material_id = t.id
+            """,
+            'resumo_por_periodo': """
+                SELECT p.periodo, p.ano, p.mes,
+                       COUNT(DISTINCT e.material_id) as total_materiais,
+                       SUM(e.quantidade) as total_quantidade,
+                       SUM(e.valor_total) as valor_total_estoque,
+                       AVG(e.custo_medio) as custo_medio_geral
+                FROM estoque e
+                JOIN periodos p ON e.periodo_id = p.id
+                GROUP BY p.id, p.periodo, p.ano, p.mes
+                ORDER BY p.ano, p.mes
+            """,
+            'top_materiais_valor': """
+                SELECT m.codigo, m.descricao, f.descricao as familia,
+                       SUM(e.valor_total) as valor_total,
+                       SUM(e.quantidade) as quantidade_total,
+                       AVG(e.custo_medio) as custo_medio
+                FROM estoque e
+                JOIN materiais m ON e.material_id = m.id
+                LEFT JOIN grupos_materiais g ON m.grupo_material_id = g.id
+                LEFT JOIN familias f ON g.familia_id = f.id
+                GROUP BY m.id, m.codigo, m.descricao, f.descricao
+                ORDER BY valor_total DESC
+                LIMIT 20
+            """,
+            'estoque_por_almoxarifado': """
+                SELECT a.descricao as almoxarifado,
+                       COUNT(DISTINCT e.material_id) as total_materiais,
+                       SUM(e.quantidade) as quantidade_total,
+                       SUM(e.valor_total) as valor_total
+                FROM estoque e
+                JOIN almoxarifados a ON e.almoxarifado_id = a.id
+                GROUP BY a.id, a.descricao
+                ORDER BY valor_total DESC
+            """
+        }
+        
+        data = {}
+        for key, query in queries.items():
+            try:
+                df = pd.read_sql_query(query, conn)
+                data[key] = df if len(df) > 0 else pd.DataFrame()
+            except Exception as e:
+                st.warning(f"Erro ao carregar {key}: {e}")
+                data[key] = pd.DataFrame()
+        
+        conn.close()
+        return data
+        
+    except Exception as e:
+        st.error(f"Erro ao conectar com o banco de dados: {e}")
+        # Retornar dados vazios em caso de erro
+        return {
+            'estoque': pd.DataFrame(),
+            'materiais': pd.DataFrame(),
+            'resumo_por_periodo': pd.DataFrame(),
+            'top_materiais_valor': pd.DataFrame(),
+            'estoque_por_almoxarifado': pd.DataFrame()
+        }
 
 def format_currency(value):
     """Formata valor como moeda brasileira"""
@@ -669,42 +682,81 @@ def calculate_advanced_kpis(data):
     """
     kpis = {}
     
+    # Verificar se os dados existem
+    if 'estoque' not in data or len(data['estoque']) == 0:
+        return {
+            'valor_total_saidas': 0,
+            'quantidade_materiais': 0,
+            'quantidade_total_saidas': 0,
+            'saida_media_por_material': 0,
+            'valor_medio_por_saida': 0,
+            'materiais_ativos': 0,
+            'periodos_ativos': 0,
+            'saida_media_por_periodo': 0,
+            'variacao_saidas': 0,
+            'percentil_25': 0,
+            'percentil_50': 0,
+            'percentil_75': 0,
+            'percentil_90': 0,
+            'percentil_95': 0,
+            'coeficiente_variacao': 0,
+            'indice_sazonalidade': 0,
+            'indice_concentracao': 0
+        }
+    
     # Usar dados do estoque
     estoque_data = data['estoque']
     
     # Métricas básicas de saídas
-    kpis['valor_total_saidas'] = estoque_data['valor_total'].sum()
-    kpis['quantidade_materiais'] = estoque_data['cod_material'].nunique()
-    kpis['quantidade_total_saidas'] = estoque_data['quantidade'].sum()
+    kpis['valor_total_saidas'] = estoque_data['valor_total'].sum() if 'valor_total' in estoque_data.columns else 0
+    kpis['quantidade_materiais'] = estoque_data['cod_material'].nunique() if 'cod_material' in estoque_data.columns else 0
+    kpis['quantidade_total_saidas'] = estoque_data['quantidade'].sum() if 'quantidade' in estoque_data.columns else 0
     
     # KPIs específicos para saídas
     kpis['saida_media_por_material'] = kpis['quantidade_total_saidas'] / kpis['quantidade_materiais'] if kpis['quantidade_materiais'] > 0 else 0
     kpis['valor_medio_por_saida'] = kpis['valor_total_saidas'] / kpis['quantidade_total_saidas'] if kpis['quantidade_total_saidas'] > 0 else 0
-    kpis['materiais_ativos'] = estoque_data[estoque_data['quantidade'] != 0]['cod_material'].nunique()
-    kpis['periodos_ativos'] = estoque_data['periodo'].nunique()
+    
+    # Verificar se as colunas existem antes de usar
+    if 'quantidade' in estoque_data.columns and 'cod_material' in estoque_data.columns:
+        kpis['materiais_ativos'] = estoque_data[estoque_data['quantidade'] != 0]['cod_material'].nunique()
+    else:
+        kpis['materiais_ativos'] = 0
+    
+    if 'periodo' in estoque_data.columns:
+        kpis['periodos_ativos'] = estoque_data['periodo'].nunique()
+    else:
+        kpis['periodos_ativos'] = 0
     
     # Calcular saída média por período
     kpis['saida_media_por_periodo'] = kpis['quantidade_total_saidas'] / kpis['periodos_ativos'] if kpis['periodos_ativos'] > 0 else 0
     
     # Calcular variação de saídas
-    if kpis['periodos_ativos'] > 1:
+    if kpis['periodos_ativos'] > 1 and 'periodo' in estoque_data.columns and 'quantidade' in estoque_data.columns:
         saidas_por_periodo = estoque_data.groupby('periodo')['quantidade'].sum()
         kpis['variacao_saidas'] = saidas_por_periodo.std() / saidas_por_periodo.mean() if saidas_por_periodo.mean() > 0 else 0
     else:
         kpis['variacao_saidas'] = 0
     
     # Métricas estatísticas avançadas
-    kpis['percentil_25'] = estoque_data['valor_total'].quantile(0.25)
-    kpis['percentil_50'] = estoque_data['valor_total'].quantile(0.50)  # Mediana
-    kpis['percentil_75'] = estoque_data['valor_total'].quantile(0.75)
-    kpis['percentil_90'] = estoque_data['valor_total'].quantile(0.90)
-    kpis['percentil_95'] = estoque_data['valor_total'].quantile(0.95)
-    
-    # Coeficiente de variação
-    kpis['coeficiente_variacao'] = (estoque_data['valor_total'].std() / estoque_data['valor_total'].mean()) * 100 if estoque_data['valor_total'].mean() > 0 else 0
+    if 'valor_total' in estoque_data.columns and len(estoque_data) > 0:
+        kpis['percentil_25'] = estoque_data['valor_total'].quantile(0.25)
+        kpis['percentil_50'] = estoque_data['valor_total'].quantile(0.50)  # Mediana
+        kpis['percentil_75'] = estoque_data['valor_total'].quantile(0.75)
+        kpis['percentil_90'] = estoque_data['valor_total'].quantile(0.90)
+        kpis['percentil_95'] = estoque_data['valor_total'].quantile(0.95)
+        
+        # Coeficiente de variação
+        kpis['coeficiente_variacao'] = (estoque_data['valor_total'].std() / estoque_data['valor_total'].mean()) * 100 if estoque_data['valor_total'].mean() > 0 else 0
+    else:
+        kpis['percentil_25'] = 0
+        kpis['percentil_50'] = 0
+        kpis['percentil_75'] = 0
+        kpis['percentil_90'] = 0
+        kpis['percentil_95'] = 0
+        kpis['coeficiente_variacao'] = 0
     
     # Análise de sazonalidade (simplificada)
-    if 'periodo' in estoque_data.columns:
+    if 'periodo' in estoque_data.columns and 'valor_total' in estoque_data.columns:
         estoque_data['mes'] = estoque_data['periodo'].str[:3]
         sazonalidade = estoque_data.groupby('mes')['valor_total'].sum()
         if len(sazonalidade) > 1:
@@ -715,10 +767,13 @@ def calculate_advanced_kpis(data):
         kpis['indice_sazonalidade'] = 0
     
     # Concentração (índice de Herfindahl simplificado)
-    valores_por_material = estoque_data.groupby('cod_material')['valor_total'].sum()
-    if len(valores_por_material) > 0:
-        participacao = valores_por_material / valores_por_material.sum()
-        kpis['indice_concentracao'] = (participacao ** 2).sum()
+    if 'cod_material' in estoque_data.columns and 'valor_total' in estoque_data.columns:
+        valores_por_material = estoque_data.groupby('cod_material')['valor_total'].sum()
+        if len(valores_por_material) > 0:
+            participacao = valores_por_material / valores_por_material.sum()
+            kpis['indice_concentracao'] = (participacao ** 2).sum()
+        else:
+            kpis['indice_concentracao'] = 0
     else:
         kpis['indice_concentracao'] = 0
     
@@ -730,8 +785,16 @@ def generate_alerts(data):
     """
     alertas = []
     
+    # Verificar se os dados existem
+    if 'estoque' not in data or len(data['estoque']) == 0:
+        return alertas
+    
     # Usar dados do estoque
     estoque_data = data['estoque']
+    
+    # Verificar se as colunas necessárias existem
+    if 'cod_material' not in estoque_data.columns or 'quantidade' not in estoque_data.columns or 'valor_total' not in estoque_data.columns:
+        return alertas
     
     # Calcular métricas de saídas por material
     saidas_por_material = estoque_data.groupby('cod_material').agg({
@@ -791,6 +854,12 @@ def show_main_dashboard():
     with st.spinner('Carregando dados...'):
         data = load_data()
     
+    # Verificar se os dados foram carregados corretamente
+    if 'estoque' not in data or len(data['estoque']) == 0:
+        st.error("❌ Nenhum dado encontrado. Verifique se o banco de dados foi inicializado corretamente.")
+        st.info("💡 Use a aba 'Integração de Dados' para carregar dados de exemplo.")
+        return
+    
     # Calcular KPIs avançados
     kpis = calculate_advanced_kpis(data)
     
@@ -800,22 +869,29 @@ def show_main_dashboard():
     # Sidebar
     st.sidebar.title("🔍 Filtros")
     
-    # Filtros
-    periodos_disponiveis = data['estoque']['periodo'].unique()
-    periodo_selecionado = st.sidebar.selectbox(
-        "Selecione o Período:",
-        ['Todos'] + list(periodos_disponiveis)
-    )
+    # Filtros com verificações de segurança
+    if 'periodo' in data['estoque'].columns:
+        periodos_disponiveis = data['estoque']['periodo'].unique()
+        periodo_selecionado = st.sidebar.selectbox(
+            "Selecione o Período:",
+            ['Todos'] + list(periodos_disponiveis)
+        )
+    else:
+        periodo_selecionado = 'Todos'
     
-    familias_disponiveis = data['estoque']['familia'].unique()
-    familia_selecionada = st.sidebar.selectbox(
-        "Selecione a Família:",
-        ['Todas'] + list(familias_disponiveis)
-    )
+    if 'familia' in data['estoque'].columns:
+        familias_disponiveis = data['estoque']['familia'].unique()
+        familia_selecionada = st.sidebar.selectbox(
+            "Selecione a Família:",
+            ['Todas'] + list(familias_disponiveis)
+        )
+    else:
+        familia_selecionada = 'Todas'
     
-    almoxarifados_disponiveis = data['estoque']['almoxarifado'].unique()
-    almoxarifado_selecionado = st.sidebar.selectbox(
-        "Selecione o Almoxarifado:",
+    if 'almoxarifado' in data['estoque'].columns:
+        almoxarifados_disponiveis = data['estoque']['almoxarifado'].unique()
+        almoxarifado_selecionado = st.sidebar.selectbox(
+            "Selecione o Almoxarifado:",
         ['Todos'] + list(almoxarifados_disponiveis)
     )
     
@@ -824,30 +900,36 @@ def show_main_dashboard():
     st.sidebar.subheader("🔧 Filtros Avançados")
     
     # Filtro por faixa de valores
-    st.sidebar.markdown("**💰 Faixa de Valores**")
-    valor_min = data['estoque']['valor_total'].min()
-    valor_max = data['estoque']['valor_total'].max()
-    
-    valor_range = st.sidebar.slider(
-        "Valor Total (R$):",
-        min_value=float(valor_min),
-        max_value=float(valor_max),
-        value=(float(valor_min), float(valor_max)),
-        format="R$ %.2f"
-    )
+    if 'valor_total' in data['estoque'].columns and len(data['estoque']) > 0:
+        st.sidebar.markdown("**💰 Faixa de Valores**")
+        valor_min = data['estoque']['valor_total'].min()
+        valor_max = data['estoque']['valor_total'].max()
+        
+        valor_range = st.sidebar.slider(
+            "Valor Total (R$):",
+            min_value=float(valor_min),
+            max_value=float(valor_max),
+            value=(float(valor_min), float(valor_max)),
+            format="R$ %.2f"
+        )
+    else:
+        valor_range = (0, 0)
     
     # Filtro por faixa de quantidades
-    st.sidebar.markdown("**📦 Faixa de Quantidades**")
-    qtd_min = data['estoque']['quantidade'].min()
-    qtd_max = data['estoque']['quantidade'].max()
-    
-    qtd_range = st.sidebar.slider(
-        "Quantidade:",
-        min_value=float(qtd_min),
-        max_value=float(qtd_max),
-        value=(float(qtd_min), float(qtd_max)),
-        format="%.0f"
-    )
+    if 'quantidade' in data['estoque'].columns and len(data['estoque']) > 0:
+        st.sidebar.markdown("**📦 Faixa de Quantidades**")
+        qtd_min = data['estoque']['quantidade'].min()
+        qtd_max = data['estoque']['quantidade'].max()
+        
+        qtd_range = st.sidebar.slider(
+            "Quantidade:",
+            min_value=float(qtd_min),
+            max_value=float(qtd_max),
+            value=(float(qtd_min), float(qtd_max)),
+            format="%.0f"
+        )
+    else:
+        qtd_range = (0, 0)
     
     # Filtro por código de material
     st.sidebar.markdown("**🔍 Busca por Código**")
@@ -860,29 +942,29 @@ def show_main_dashboard():
     # Aplicar filtros
     estoque_filtrado = data['estoque'].copy()
     
-    if periodo_selecionado != 'Todos':
+    if periodo_selecionado != 'Todos' and 'periodo' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['periodo'] == periodo_selecionado]
     
-    if familia_selecionada != 'Todas':
+    if familia_selecionada != 'Todas' and 'familia' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['familia'] == familia_selecionada]
     
-    if almoxarifado_selecionado != 'Todos':
+    if almoxarifado_selecionado != 'Todos' and 'almoxarifado' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[estoque_filtrado['almoxarifado'] == almoxarifado_selecionado]
     
     # Aplicar filtros avançados
-    if valor_range[0] != valor_min or valor_range[1] != valor_max:
+    if 'valor_total' in estoque_filtrado.columns and valor_range[0] != 0 and valor_range[1] != 0:
         estoque_filtrado = estoque_filtrado[
             (estoque_filtrado['valor_total'] >= valor_range[0]) & 
             (estoque_filtrado['valor_total'] <= valor_range[1])
         ]
     
-    if qtd_range[0] != qtd_min or qtd_range[1] != qtd_max:
+    if 'quantidade' in estoque_filtrado.columns and qtd_range[0] != 0 and qtd_range[1] != 0:
         estoque_filtrado = estoque_filtrado[
             (estoque_filtrado['quantidade'] >= qtd_range[0]) & 
             (estoque_filtrado['quantidade'] <= qtd_range[1])
         ]
     
-    if codigo_material:
+    if codigo_material and 'cod_material' in estoque_filtrado.columns:
         estoque_filtrado = estoque_filtrado[
             estoque_filtrado['cod_material'].astype(str).str.contains(codigo_material, case=False, na=False)
         ]
@@ -1449,7 +1531,10 @@ def show_advanced_analyses():
             
             # Calcular percentis
             percentis = [10, 25, 50, 75, 90, 95, 99]
-            valores_percentis = [np.percentile(data['estoque']['valor_total'], p) for p in percentis]
+            if 'estoque' in data and len(data['estoque']) > 0 and 'valor_total' in data['estoque'].columns:
+                valores_percentis = [np.percentile(data['estoque']['valor_total'], p) for p in percentis]
+            else:
+                valores_percentis = [0] * len(percentis)
             
             fig_percentis = px.bar(
                 x=[f'P{p}' for p in percentis],
