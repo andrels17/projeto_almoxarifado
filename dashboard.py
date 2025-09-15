@@ -44,22 +44,74 @@ def init_database():
                     
                     # Inserir dados básicos (simplificado para demo)
                     if len(df) > 0:
-                        # Inserir alguns registros de exemplo
-                        for _, row in df.head(100).iterrows():  # Limitar a 100 registros para demo
+                        # Inserir dados nas tabelas relacionadas primeiro
+                        
+                        # Inserir períodos
+                        periodos_unicos = df['Período'].unique() if 'Período' in df.columns else ['jan/23']
+                        for periodo in periodos_unicos:
+                            cursor.execute("""
+                                INSERT OR IGNORE INTO periodos (periodo, ano, mes) 
+                                VALUES (?, ?, ?)
+                            """, (periodo, 2023, 1))
+                        
+                        # Inserir famílias
+                        familias_unicas = df['Desc. Família'].unique() if 'Desc. Família' in df.columns else ['Família de Exemplo']
+                        for familia in familias_unicas:
+                            cursor.execute("""
+                                INSERT OR IGNORE INTO familias (descricao) 
+                                VALUES (?)
+                            """, (familia,))
+                        
+                        # Inserir almoxarifados
+                        almoxarifados_unicos = df['Desc. Almoxarifado'].unique() if 'Desc. Almoxarifado' in df.columns else ['Almoxarifado de Exemplo']
+                        for almoxarifado in almoxarifados_unicos:
+                            cursor.execute("""
+                                INSERT OR IGNORE INTO almoxarifados (descricao) 
+                                VALUES (?)
+                            """, (almoxarifado,))
+                        
+                        # Inserir materiais
+                        materiais_unicos = df[['Cód. Material', 'Desc. Material', 'Unidade']].drop_duplicates() if all(col in df.columns for col in ['Cód. Material', 'Desc. Material', 'Unidade']) else pd.DataFrame({'Cód. Material': ['1'], 'Desc. Material': ['Material de Exemplo'], 'Unidade': ['UN']})
+                        
+                        for _, material in materiais_unicos.iterrows():
+                            cursor.execute("""
+                                INSERT OR IGNORE INTO materiais (codigo, descricao, unidade) 
+                                VALUES (?, ?, ?)
+                            """, (
+                                str(material.get('Cód. Material', '1')),
+                                material.get('Desc. Material', 'Material de Exemplo'),
+                                material.get('Unidade', 'UN')
+                            ))
+                        
+                        conn.commit()
+                        
+                        # Agora inserir dados de estoque
+                        for _, row in df.head(50).iterrows():  # Limitar a 50 registros para demo
+                            # Obter IDs das tabelas relacionadas
+                            cursor.execute("SELECT id FROM periodos WHERE periodo = ?", (row.get('Período', 'jan/23'),))
+                            periodo_id = cursor.fetchone()
+                            periodo_id = periodo_id[0] if periodo_id else 1
+                            
+                            cursor.execute("SELECT id FROM materiais WHERE codigo = ?", (str(row.get('Cód. Material', '1')),))
+                            material_id = cursor.fetchone()
+                            material_id = material_id[0] if material_id else 1
+                            
+                            cursor.execute("SELECT id FROM almoxarifados WHERE descricao = ?", (row.get('Desc. Almoxarifado', 'Almoxarifado de Exemplo'),))
+                            almoxarifado_id = cursor.fetchone()
+                            almoxarifado_id = almoxarifado_id[0] if almoxarifado_id else 1
+                            
+                            # Inserir dados de estoque
                             cursor.execute("""
                                 INSERT OR IGNORE INTO estoque 
-                                (periodo, cod_material, desc_material, familia, quantidade, custo_medio, valor_total, unidade, almoxarifado)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                (periodo_id, material_id, almoxarifado_id, quantidade, custo_medio, valor_total)
+                                VALUES (?, ?, ?, ?, ?, ?)
                             """, (
-                                row.get('Período', 'jan/23'),
-                                row.get('Cód. Material', '1'),
-                                row.get('Desc. Material', 'Material de Exemplo'),
-                                row.get('Desc. Família', 'Família de Exemplo'),
+                                periodo_id,
+                                material_id,
+                                almoxarifado_id,
                                 float(row.get('Quantidade', 1)),
                                 float(row.get('Custo Médio', 100.0)),
-                                float(row.get('Vlr. Total', 100.0)),
-                                row.get('Unidade', 'UN'),
-                                row.get('Desc. Almoxarifado', 'Almoxarifado de Exemplo')
+                                float(row.get('Vlr. Total', 100.0))
                             ))
                     
                     conn.commit()
@@ -198,6 +250,9 @@ st.markdown("""
 @st.cache_data
 def load_data():
     """Carrega dados do banco SQLite"""
+    # Inicializar banco se não existir
+    init_database()
+    
     try:
         conn = sqlite3.connect('almoxarifado.db')
         
@@ -648,11 +703,6 @@ def show_trend_analysis(codigo_material, data):
         st.info("Dados insuficientes para análise de tendências (mínimo 4 períodos necessários).")
 
 def main():
-    # Inicializar banco de dados
-    if not init_database():
-        st.error("❌ Erro ao inicializar banco de dados. Verifique os logs.")
-        return
-    
     # Header
     st.markdown('<h1 class="main-header">📦 Dashboard do Almoxarifado</h1>', unsafe_allow_html=True)
     
